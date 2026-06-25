@@ -1,0 +1,62 @@
+{
+  "name": "ASHA Worker AI Co-pilot",
+  "short_name": "ASHA Co-pilot",
+  "description": "AI-powered healthcare assistance for ASHA workers in rural communities",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "theme_color": "#0B4F4A",
+  "background_color": "#F7F4ED",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%230B4F4A' width='192' height='192'/><text x='50%' y='50%' font-size='120' text-anchor='middle' dominant-baseline='central'>🏥</text></svg>",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect fill='%230B4F4A' width='512' height='512'/><text x='50%' y='50%' font-size='320' text-anchor='middle' dominant-baseline='central'>🏥</text></svg>",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["medical", "health"],
+  "screenshots": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 540 720'><rect fill='%23F7F4ED' width='540' height='720'/><rect fill='%230B4F4A' width='540' height='100'/><text x='270' y='50' font-size='30' text-anchor='middle' fill='white'>ASHA Co-pilot</text></svg>",
+      "sizes": "540x720",
+      "type": "image/svg+xml",
+      "form_factor": "narrow"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "New Visit",
+      "short_name": "Visit",
+      "description": "Record a new patient visit",
+      "url": "/?screen=visit",
+      "icons": [
+        {
+          "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 96 96'><rect fill='%230B4F4A' width='96' height='96' rx='20'/><text x='48' y='48' font-size='60' text-anchor='middle' dominant-baseline='central'>📋</text></svg>",
+          "sizes": "96x96",
+          "type": "image/svg+xml"
+        }
+      ]
+    },
+    {
+      "name": "Register Patient",
+      "short_name": "Register",
+      "description": "Register a new patient",
+      "url": "/?screen=register",
+      "icons": [
+        {
+          "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 96 96'><rect fill='%230B4F4A' width='96' height='96' rx='20'/><text x='48' y='48' font-size='60' text-anchor='middle' dominant-baseline='central'>👤</text></svg>",
+          "sizes": "96x96",
+          "type": "image/svg+xml"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.pyc
+venv/
+*.db
+
+# ML artifacts (regenerate with train_model.py)
+*.pkl
+
+# Generated PDFs
+backend/referrals/*.pdf
+
+# Node
+node_modules/
+dist/
+.env
+
+# OS
+.DS_Store
