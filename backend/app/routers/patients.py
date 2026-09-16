@@ -49,14 +49,21 @@ def get_stats(db: Session = Depends(get_db)):
     pending_referrals = db.query(Referral).filter(Referral.status == "pending").count()
 
     now = datetime.utcnow()
+    # Upcoming follow-ups: scheduled in the future AND not yet overdue
     upcoming_followups = (
         db.query(FollowUp)
         .filter(FollowUp.status == "upcoming", FollowUp.due_date >= now)
         .count()
     )
+    # Overdue follow-ups: ANY follow-up past its due date that hasn't been marked done.
+    # Previously this only counted status="upcoming", which made "missed" follow-ups
+    # vanish from the dashboard. Include both "upcoming" (past due) and "missed".
     overdue_followups = (
         db.query(FollowUp)
-        .filter(FollowUp.status == "upcoming", FollowUp.due_date < now)
+        .filter(
+            ((FollowUp.status == "upcoming") & (FollowUp.due_date < now))
+            | (FollowUp.status == "missed")
+        )
         .count()
     )
 

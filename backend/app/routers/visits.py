@@ -13,19 +13,19 @@ router = APIRouter(prefix="/visits", tags=["visits"])
 
 def _get_reason_summary(flags):
     """Generate a concise referral reason from the flags."""
-    if not flags:
+    if not flags or not isinstance(flags, list):
         return "Patient requires further medical evaluation."
-    
-    critical_flags = [f for f in flags if f["severity"] == "critical"]
+
+    critical_flags = [f for f in flags if f.get("severity") == "critical"]
     if critical_flags:
         reasons = [f["message"].split("—")[0].strip() for f in critical_flags[:2]]
         return "Critical findings: " + "; ".join(reasons)
-    
-    high_flags = [f for f in flags if f["severity"] == "high"]
+
+    high_flags = [f for f in flags if f.get("severity") == "high"]
     if high_flags:
         reasons = [f["message"].split("—")[0].strip() for f in high_flags[:2]]
         return "High-risk findings: " + "; ".join(reasons)
-    
+
     return "Patient requires further evaluation based on health indicators."
 
 
@@ -164,14 +164,9 @@ def record_visit_and_assess(patient_id: int, visit: VisitCreate, db: Session = D
     )
 
 
-@router.get("/{patient_id}", response_model=list[VisitOut])
-def list_visits(patient_id: int, db: Session = Depends(get_db)):
-    """Fetch all visits for a patient."""
-    patient = db.query(Patient).filter(Patient.id == patient_id).first()
-    if not patient:
-        raise HTTPException(status_code=404, detail="Patient not found")
-    return db.query(Visit).filter(Visit.patient_id == patient_id).order_by(Visit.visit_date.desc()).all()
-
+# IMPORTANT: literal-path route "/detail/{visit_id}" must be registered BEFORE
+# the "/{patient_id}" path-param route, otherwise FastAPI may match the literal
+# "detail" as an integer and return 422.
 
 @router.get("/detail/{visit_id}", response_model=VisitOut)
 def get_visit(visit_id: int, db: Session = Depends(get_db)):
@@ -180,3 +175,12 @@ def get_visit(visit_id: int, db: Session = Depends(get_db)):
     if not visit:
         raise HTTPException(status_code=404, detail="Visit not found")
     return visit
+
+
+@router.get("/{patient_id}", response_model=list[VisitOut])
+def list_visits(patient_id: int, db: Session = Depends(get_db)):
+    """Fetch all visits for a patient."""
+    patient = db.query(Patient).filter(Patient.id == patient_id).first()
+    if not patient:
+        raise HTTPException(status_code=404, detail="Patient not found")
+    return db.query(Visit).filter(Visit.patient_id == patient_id).order_by(Visit.visit_date.desc()).all()

@@ -40,18 +40,29 @@ def _to_ml_features(v: dict) -> dict:
 def assess(v: dict) -> dict:
     rule_result = evaluate_vitals(v)
     ml_features = _to_ml_features(v)
-    ml_result = ml_predict.predict_risk(ml_features)
 
-    final_level = _max_level(rule_result["rule_risk_level"], ml_result["ml_risk_level"])
+    # Defensive: if the ML model isn't trained or fails to load, fall back to
+    # rule-only output rather than 500-ing the entire assessment endpoint.
+    try:
+        ml_result = ml_predict.predict_risk(ml_features)
+        ml_risk_level = ml_result["ml_risk_level"]
+        ml_confidence = ml_result["ml_confidence"]
+        class_probabilities = ml_result["class_probabilities"]
+    except Exception:
+        ml_risk_level = rule_result["rule_risk_level"]
+        ml_confidence = 0.0
+        class_probabilities = {lvl: 0.0 for lvl in ["low", "medium", "high", "critical"]}
+
+    final_level = _max_level(rule_result["rule_risk_level"], ml_risk_level)
 
     needs_referral = final_level in ("high", "critical")
 
     return {
         "risk_level": final_level,
         "rule_risk_level": rule_result["rule_risk_level"],
-        "ml_risk_level": ml_result["ml_risk_level"],
-        "ml_confidence": round(ml_result["ml_confidence"], 3),
-        "class_probabilities": {k: round(v, 3) for k, v in ml_result["class_probabilities"].items()},
+        "ml_risk_level": ml_risk_level,
+        "ml_confidence": round(ml_confidence, 3),
+        "class_probabilities": {k: round(p, 3) for k, p in class_probabilities.items()},
         "flags": rule_result["flags"],
         "category_levels": rule_result["category_levels"],
         "needs_referral": needs_referral,

@@ -13,9 +13,15 @@ def _load():
     global _bundle
     if _bundle is None:
         if not os.path.exists(_MODEL_PATH):
-            raise RuntimeError(
-                "ML model not found. Run `python -m app.ml.train_model` from the backend/ directory first."
-            )
+            # Auto-train if model file is missing (e.g., fresh deploy on Render)
+            try:
+                from app.ml.train_model import main as train_main
+                train_main()
+            except Exception as e:
+                raise RuntimeError(
+                    f"ML model not found and auto-train failed: {e}. "
+                    "Run `python -m app.ml.train_model` from the backend/ directory."
+                )
         _bundle = joblib.load(_MODEL_PATH)
     return _bundle
 
@@ -37,9 +43,7 @@ def predict_risk(features: dict) -> dict:
     pred_idx = proba.argmax()
     pred_label = le.inverse_transform([pred_idx])[0]
 
-    probs = {le.classes_[i] if isinstance(le.classes_[i], str) else le.inverse_transform([i])[0]: float(p)
-              for i, p in enumerate(proba)}
-    # cleaner: map index -> label name directly
+    # Map class index -> human-readable label
     probs = {le.inverse_transform([i])[0]: float(p) for i, p in enumerate(proba)}
 
     return {

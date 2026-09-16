@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css';
+import VoiceChatbot, { SUPPORTED_LANGUAGES } from './VoiceChatbot';
+import VoiceFormCopilot from './VoiceFormCopilot';
 
 // ─── Config ───────────────────────────────────────────────────────────────
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8000';
@@ -136,7 +138,7 @@ function Modal({ title, onClose, children, footer }) {
 }
 
 // ─── Patient Registration Form ────────────────────────────────────────────
-function PatientForm({ onSuccess, onCancel }) {
+function PatientForm({ onSuccess, onCancel, autoFillData }) {
   const [form, setForm] = useState({
     name: '',
     age: '',
@@ -153,6 +155,25 @@ function PatientForm({ onSuccess, onCancel }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  // Auto-fill from voice AI details
+  useEffect(() => {
+    if (autoFillData) {
+      setForm(prev => ({
+        ...prev,
+        name: autoFillData.patient_name || autoFillData.name || prev.name,
+        age: autoFillData.age !== undefined && autoFillData.age !== null ? String(autoFillData.age) : prev.age,
+        gender: autoFillData.gender || prev.gender,
+        village: autoFillData.village || prev.village,
+        phone: autoFillData.phone || prev.phone,
+        address: autoFillData.address || prev.address,
+        is_pregnant: autoFillData.is_pregnant !== undefined ? Boolean(autoFillData.is_pregnant) : prev.is_pregnant,
+        is_child: autoFillData.is_child !== undefined ? Boolean(autoFillData.is_child) : prev.is_child,
+        existing_diabetes: autoFillData.existing_diabetes !== undefined ? Boolean(autoFillData.existing_diabetes) : prev.existing_diabetes,
+        existing_hypertension: autoFillData.existing_hypertension !== undefined ? Boolean(autoFillData.existing_hypertension) : prev.existing_hypertension,
+      }));
+    }
+  }, [autoFillData]);
+
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setForm(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
@@ -161,7 +182,13 @@ function PatientForm({ onSuccess, onCancel }) {
   // Auto-set is_child when age < 5
   useEffect(() => {
     if (form.age !== '') {
-      setForm(prev => ({ ...prev, is_child: parseInt(form.age) < 5 }));
+      const age = parseInt(form.age, 10);
+      setForm(prev => {
+        const shouldBeChild = !isNaN(age) && age < 5;
+        // Avoid redundant state update if value already matches
+        if (prev.is_child === shouldBeChild) return prev;
+        return { ...prev, is_child: shouldBeChild };
+      });
     }
   }, [form.age]);
 
@@ -182,10 +209,34 @@ function PatientForm({ onSuccess, onCancel }) {
     }
   };
 
+  const handleVoiceExtracted = (extracted) => {
+    if (!extracted) return;
+    setForm(prev => ({
+      ...prev,
+      name: extracted.patient_name || extracted.name || prev.name,
+      age: extracted.age !== undefined && extracted.age !== null ? String(extracted.age) : prev.age,
+      gender: extracted.gender ? extracted.gender.toLowerCase() : prev.gender,
+      village: extracted.village || prev.village,
+      phone: extracted.phone || prev.phone,
+      address: extracted.address || prev.address,
+      is_pregnant: extracted.is_pregnant !== undefined ? Boolean(extracted.is_pregnant) : prev.is_pregnant,
+      is_child: extracted.is_child !== undefined ? Boolean(extracted.is_child) : prev.is_child,
+      existing_diabetes: extracted.existing_diabetes !== undefined ? Boolean(extracted.existing_diabetes) : prev.existing_diabetes,
+      existing_hypertension: extracted.existing_hypertension !== undefined ? Boolean(extracted.existing_hypertension) : prev.existing_hypertension,
+    }));
+  };
+
   return (
     <form onSubmit={handleSubmit}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
         {error && <Alert type="error">{error}</Alert>}
+
+        {/* 🎙️ Voice Copilot for Registration */}
+        <VoiceFormCopilot
+          formType="patient"
+          onDetailsExtracted={handleVoiceExtracted}
+          apiBase={API_BASE}
+        />
 
         <p className="form-section-title">👤 Personal Details</p>
 
@@ -306,7 +357,7 @@ const DANGER_SIGNS = [
   { id: 'swelling',              label: '🦶 Sudden swelling of face/hands/feet' },
 ];
 
-function VisitForm({ patient, onSuccess, onCancel }) {
+function VisitForm({ patient, onSuccess, onCancel, autoFillData }) {
   const [form, setForm] = useState({
     systolic_bp: '',
     diastolic_bp: '',
@@ -326,6 +377,30 @@ function VisitForm({ patient, onSuccess, onCancel }) {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Auto-fill vitals from voice AI chatbot details
+  useEffect(() => {
+    if (autoFillData) {
+      setForm(prev => ({
+        ...prev,
+        systolic_bp: autoFillData.systolic_bp !== undefined && autoFillData.systolic_bp !== null ? String(autoFillData.systolic_bp) : prev.systolic_bp,
+        diastolic_bp: autoFillData.diastolic_bp !== undefined && autoFillData.diastolic_bp !== null ? String(autoFillData.diastolic_bp) : prev.diastolic_bp,
+        blood_sugar_mg_dl: autoFillData.blood_sugar_mg_dl !== undefined && autoFillData.blood_sugar_mg_dl !== null ? String(autoFillData.blood_sugar_mg_dl) : prev.blood_sugar_mg_dl,
+        hemoglobin_g_dl: autoFillData.hemoglobin_g_dl !== undefined && autoFillData.hemoglobin_g_dl !== null ? String(autoFillData.hemoglobin_g_dl) : prev.hemoglobin_g_dl,
+        temperature_c: autoFillData.temperature_c !== undefined && autoFillData.temperature_c !== null ? String(autoFillData.temperature_c) : prev.temperature_c,
+        pulse_bpm: autoFillData.pulse_bpm !== undefined && autoFillData.pulse_bpm !== null ? String(autoFillData.pulse_bpm) : prev.pulse_bpm,
+        weight_kg: autoFillData.weight_kg !== undefined && autoFillData.weight_kg !== null ? String(autoFillData.weight_kg) : prev.weight_kg,
+        height_cm: autoFillData.height_cm !== undefined && autoFillData.height_cm !== null ? String(autoFillData.height_cm) : prev.height_cm,
+        trimester: autoFillData.trimester !== undefined && autoFillData.trimester !== null ? String(autoFillData.trimester) : prev.trimester,
+        child_age_months: autoFillData.child_age_months !== undefined && autoFillData.child_age_months !== null ? String(autoFillData.child_age_months) : prev.child_age_months,
+        muac_cm: autoFillData.muac_cm !== undefined && autoFillData.muac_cm !== null ? String(autoFillData.muac_cm) : prev.muac_cm,
+        diarrhea: autoFillData.diarrhea !== undefined ? Boolean(autoFillData.diarrhea) : prev.diarrhea,
+        pregnancy_danger_signs: Array.isArray(autoFillData.pregnancy_danger_signs) && autoFillData.pregnancy_danger_signs.length > 0 ? autoFillData.pregnancy_danger_signs : prev.pregnancy_danger_signs,
+        symptoms: Array.isArray(autoFillData.symptoms) && autoFillData.symptoms.length > 0 ? autoFillData.symptoms : prev.symptoms,
+        notes: autoFillData.notes ? (prev.notes ? `${prev.notes} | ${autoFillData.notes}` : autoFillData.notes) : prev.notes,
+      }));
+    }
+  }, [autoFillData]);
 
   const bmi = calcBMI(form.weight_kg, form.height_cm);
 
@@ -371,6 +446,28 @@ function VisitForm({ patient, onSuccess, onCancel }) {
     }
   };
 
+  const handleVoiceExtracted = (extracted) => {
+    if (!extracted) return;
+    setForm(prev => ({
+      ...prev,
+      systolic_bp: extracted.systolic_bp !== undefined && extracted.systolic_bp !== null ? String(extracted.systolic_bp) : prev.systolic_bp,
+      diastolic_bp: extracted.diastolic_bp !== undefined && extracted.diastolic_bp !== null ? String(extracted.diastolic_bp) : prev.diastolic_bp,
+      blood_sugar_mg_dl: extracted.blood_sugar_mg_dl !== undefined && extracted.blood_sugar_mg_dl !== null ? String(extracted.blood_sugar_mg_dl) : prev.blood_sugar_mg_dl,
+      hemoglobin_g_dl: extracted.hemoglobin_g_dl !== undefined && extracted.hemoglobin_g_dl !== null ? String(extracted.hemoglobin_g_dl) : prev.hemoglobin_g_dl,
+      temperature_c: extracted.temperature_c !== undefined && extracted.temperature_c !== null ? String(extracted.temperature_c) : prev.temperature_c,
+      pulse_bpm: extracted.pulse_bpm !== undefined && extracted.pulse_bpm !== null ? String(extracted.pulse_bpm) : prev.pulse_bpm,
+      weight_kg: extracted.weight_kg !== undefined && extracted.weight_kg !== null ? String(extracted.weight_kg) : prev.weight_kg,
+      height_cm: extracted.height_cm !== undefined && extracted.height_cm !== null ? String(extracted.height_cm) : prev.height_cm,
+      trimester: extracted.trimester !== undefined && extracted.trimester !== null ? String(extracted.trimester) : prev.trimester,
+      child_age_months: extracted.child_age_months !== undefined && extracted.child_age_months !== null ? String(extracted.child_age_months) : prev.child_age_months,
+      muac_cm: extracted.muac_cm !== undefined && extracted.muac_cm !== null ? String(extracted.muac_cm) : prev.muac_cm,
+      diarrhea: extracted.diarrhea !== undefined ? Boolean(extracted.diarrhea) : prev.diarrhea,
+      pregnancy_danger_signs: Array.isArray(extracted.pregnancy_danger_signs) && extracted.pregnancy_danger_signs.length > 0 ? extracted.pregnancy_danger_signs : prev.pregnancy_danger_signs,
+      symptoms: Array.isArray(extracted.symptoms) && extracted.symptoms.length > 0 ? extracted.symptoms : prev.symptoms,
+      notes: extracted.notes ? (prev.notes ? `${prev.notes} | ${extracted.notes}` : extracted.notes) : prev.notes,
+    }));
+  };
+
   return (
     <form onSubmit={handleSubmit}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
@@ -379,6 +476,14 @@ function VisitForm({ patient, onSuccess, onCancel }) {
         <div className="alert alert-info">
           📋 Recording visit for <strong>{patient.name}</strong> — {patient.age} years, {patient.village}
         </div>
+
+        {/* 🎙️ Voice Copilot for Vitals & Symptoms */}
+        <VoiceFormCopilot
+          formType="visit"
+          patientName={patient?.name}
+          onDetailsExtracted={handleVoiceExtracted}
+          apiBase={API_BASE}
+        />
 
         {/* Vitals */}
         <p className="form-section-title">🩺 Vital Signs</p>
@@ -676,7 +781,7 @@ function PatientDetailModal({ patient, onClose, onRecordVisit }) {
         setReferrals(r);
         setFollowups(f);
       } catch (e) {
-        // ignore — just show empty
+        console.error('Failed to load patient details:', e);
       } finally {
         setLoading(false);
       }
@@ -690,7 +795,7 @@ function PatientDetailModal({ patient, onClose, onRecordVisit }) {
       await api.patch(`/followups/${id}/status`, { status: 'done' });
       setFollowups(prev => prev.map(f => f.id === id ? { ...f, status: 'done' } : f));
     } catch (e) {
-      // ignore
+      console.error('Failed to mark follow-up done:', e);
     } finally {
       setMarkingDone(null);
     }
@@ -831,12 +936,13 @@ function PatientDetailModal({ patient, onClose, onRecordVisit }) {
 }
 
 // ─── Home Dashboard ───────────────────────────────────────────────────────
-function HomeScreen({ onNavigate, onRegisterPatient, onSelectPatient }) {
+function HomeScreen({ onNavigate, onRegisterPatient, onSelectPatient, apiBase, selectedLanguage, onLanguageChange, onApplyDetails }) {
   const [stats, setStats] = useState(null);
   const [overdueFollowups, setOverdueFollowups] = useState([]);
   const [recentPatients, setRecentPatients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [apiOnline, setApiOnline] = useState(null);
+  const [loadError, setLoadError] = useState('');
 
   const loadDashboard = useCallback(async () => {
     setLoading(true);
@@ -852,14 +958,23 @@ function HomeScreen({ onNavigate, onRegisterPatient, onSelectPatient }) {
       setOverdueFollowups(fu.filter(f => new Date(f.due_date) < now).slice(0, 5));
       setRecentPatients(pts.slice(0, 3));
       setApiOnline(true);
+      setLoadError('');
     } catch (e) {
       setApiOnline(false);
+      setLoadError(e?.message || 'Failed to reach the backend API.');
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => { loadDashboard(); }, [loadDashboard]);
+
+  // Reload when chatbot auto-registers a patient or sends emergency alert
+  useEffect(() => {
+    const handleUpdate = () => loadDashboard();
+    window.addEventListener('patient-updated', handleUpdate);
+    return () => window.removeEventListener('patient-updated', handleUpdate);
+  }, [loadDashboard]);
 
   const today = new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 
@@ -871,7 +986,7 @@ function HomeScreen({ onNavigate, onRegisterPatient, onSelectPatient }) {
         borderRadius: 'var(--radius-xl)',
         padding: 'var(--space-xl)',
         color: 'white',
-        marginBottom: 'var(--space-xl)',
+        marginBottom: 'var(--space-lg)',
         position: 'relative',
         overflow: 'hidden',
       }}>
@@ -881,14 +996,38 @@ function HomeScreen({ onNavigate, onRegisterPatient, onSelectPatient }) {
             🏥 ASHA Co-pilot Dashboard
           </h2>
           <p style={{ fontSize: 13, opacity: 0.85, marginBottom: 'var(--space-lg)', maxWidth: 480 }}>
-            AI-powered health screening assistant for frontline ASHA workers. Monitor patients, record visits, and get instant risk assessments.
+            AI-powered healthcare assistant for frontline ASHA workers. Monitor patients, record field vitals, and receive real-time clinical guidance in your native language.
           </p>
           <div style={{ display: 'flex', gap: 'var(--space-sm)', flexWrap: 'wrap' }}>
+            <button
+              id="hero-copilot-btn"
+              className="action-btn"
+              style={{
+                background: 'linear-gradient(135deg, #f59e0b 0%, #ea580c 100%)',
+                color: 'white',
+                fontWeight: 800,
+                padding: '10px 22px',
+                borderRadius: 'var(--radius-md)',
+                border: 'none',
+                cursor: 'pointer',
+                fontSize: 14,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                boxShadow: '0 4px 14px rgba(234, 88, 12, 0.45)'
+              }}
+              onClick={() => onNavigate('copilot')}
+            >
+              🎙️ AI Voice Copilot
+            </button>
             <button id="hero-register-btn" className="action-btn" style={{ background: 'white', color: 'var(--color-primary)', fontWeight: 700, padding: '10px 20px', borderRadius: 'var(--radius-md)', border: 'none', cursor: 'pointer', fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }} onClick={onRegisterPatient}>
               ➕ Register Patient
             </button>
             <button className="action-btn" style={{ background: 'rgba(255,255,255,0.18)', color: 'white', fontWeight: 600, padding: '10px 20px', borderRadius: 'var(--radius-md)', border: '1.5px solid rgba(255,255,255,0.4)', cursor: 'pointer', fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }} onClick={() => onNavigate('patients')}>
               🔍 View All Patients
+            </button>
+            <button className="action-btn" style={{ background: 'rgba(255,255,255,0.9)', color: 'var(--color-primary-dark)', fontWeight: 700, padding: '10px 20px', borderRadius: 'var(--radius-md)', border: 'none', cursor: 'pointer', fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }} onClick={() => document.getElementById('home-chatbot-section')?.scrollIntoView({ behavior: 'smooth' })}>
+              🤖 Scroll to Assistant
             </button>
           </div>
         </div>
@@ -897,10 +1036,50 @@ function HomeScreen({ onNavigate, onRegisterPatient, onSelectPatient }) {
         <div style={{ position: 'absolute', bottom: -40, right: 60, width: 120, height: 120, borderRadius: '50%', background: 'rgba(255,255,255,0.05)' }} />
       </div>
 
+      {/* 🌟 EMBEDDED MULTILINGUAL AI ASSISTANT – always visible on home */}
+      <div className="home-ai-assistant-card mb-xl" id="home-chatbot-section">
+        <div className="ai-card-header">
+          <div className="ai-card-title">
+            <span className="ai-sparkle">✨</span>
+            <div>
+              <h3>AI Voice & Chat Assistant</h3>
+              <p>Speak or type in your language — I'll guide you, extract vitals, and help register patients.</p>
+            </div>
+          </div>
+          {/* Language Selector */}
+          <div className="ai-lang-wrapper">
+            <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--color-text-secondary)' }}>🌐 Language:</span>
+            <select
+              className="form-select home-lang-select"
+              value={selectedLanguage || 'hi-IN'}
+              onChange={(e) => onLanguageChange && onLanguageChange(e.target.value)}
+              id="home-language-select"
+            >
+              {SUPPORTED_LANGUAGES.map((lang) => (
+                <option key={lang.code} value={lang.code}>
+                  {lang.flag} {lang.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+        {/* Inline chatbot panel */}
+        <VoiceChatbot
+          apiBase={apiBase}
+          onApplyDetails={onApplyDetails}
+          onRegisterPatient={onRegisterPatient}
+          activeContext="home"
+          inline={true}
+          selectedLanguage={selectedLanguage}
+          onLanguageChange={onLanguageChange}
+        />
+      </div>
+
       {/* API Status */}
       {apiOnline === false && (
         <div className="alert alert-error mb-lg">
           ❌ Cannot connect to backend API at <code>{API_BASE}</code>. Make sure the backend server is running.
+          {loadError && <div style={{ fontSize: 12, marginTop: 4, opacity: 0.8 }}>Error: {loadError}</div>}
         </div>
       )}
 
@@ -997,6 +1176,94 @@ function HomeScreen({ onNavigate, onRegisterPatient, onSelectPatient }) {
   );
 }
 
+// ─── Dedicated Voice Copilot Screen ─────────────────────────────────────────
+function CopilotScreen({ apiBase, onRegisterPatient, onApplyDetails, selectedLanguage, onLanguageChange }) {
+  return (
+    <div style={{ animation: 'slide-up 0.3s ease both', maxWidth: 960, margin: '0 auto' }}>
+      {/* Top Banner */}
+      <div style={{
+        background: 'linear-gradient(135deg, #0f766e 0%, #0284c7 60%, #4338ca 100%)',
+        borderRadius: 'var(--radius-xl)',
+        padding: 'var(--space-xl)',
+        color: 'white',
+        marginBottom: 'var(--space-lg)',
+        boxShadow: '0 10px 30px rgba(2, 132, 199, 0.25)',
+        position: 'relative',
+        overflow: 'hidden',
+      }}>
+        <div style={{ position: 'relative', zIndex: 1 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+                <span style={{ fontSize: 32, animation: 'pulse-ring 2s infinite', display: 'inline-block' }}>🎙️</span>
+                <h2 style={{ fontSize: 26, fontWeight: 800, margin: 0, letterSpacing: -0.5 }}>
+                  AI Voice Copilot
+                </h2>
+                <span style={{ background: 'rgba(255,255,255,0.25)', fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: '12px' }}>
+                  AI POWERED
+                </span>
+              </div>
+              <p style={{ fontSize: 13, opacity: 0.9, maxWidth: 620, margin: 0, lineHeight: 1.6 }}>
+                Hands-free voice assistant for frontline ASHA workers. Speak naturally in your native language to register patients, record vitals, assess clinical risks, and trigger emergency SOS alerts.
+              </p>
+            </div>
+
+            {/* Language Selector */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.18)', padding: '8px 14px', borderRadius: 'var(--radius-lg)', backdropFilter: 'blur(8px)' }}>
+              <span style={{ fontSize: 12, fontWeight: 700 }}>🌐 Language:</span>
+              <select
+                className="form-select"
+                style={{ background: 'white', color: '#0f172a', fontWeight: 700, fontSize: 13, border: 'none', padding: '6px 12px', borderRadius: 'var(--radius-md)' }}
+                value={selectedLanguage || 'hi-IN'}
+                onChange={(e) => onLanguageChange && onLanguageChange(e.target.value)}
+              >
+                {SUPPORTED_LANGUAGES.map((lang) => (
+                  <option key={lang.code} value={lang.code}>
+                    {lang.flag} {lang.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Quick Voice Feature Highlights */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12, marginTop: 18 }}>
+            <div style={{ background: 'rgba(255,255,255,0.12)', borderRadius: 10, padding: '10px 14px' }}>
+              <div style={{ fontWeight: 700, fontSize: 12, marginBottom: 2 }}>🗣️ Speech-to-Text</div>
+              <div style={{ fontSize: 11, opacity: 0.85 }}>Real-time Indian language speech recognition</div>
+            </div>
+            <div style={{ background: 'rgba(255,255,255,0.12)', borderRadius: 10, padding: '10px 14px' }}>
+              <div style={{ fontWeight: 700, fontSize: 12, marginBottom: 2 }}>⚡ Instant Auto-Fill</div>
+              <div style={{ fontSize: 11, opacity: 0.85 }}>Extracts vitals, patient info & fills registration</div>
+            </div>
+            <div style={{ background: 'rgba(255,255,255,0.12)', borderRadius: 10, padding: '10px 14px' }}>
+              <div style={{ fontWeight: 700, fontSize: 12, marginBottom: 2 }}>🔊 Multilingual TTS</div>
+              <div style={{ fontSize: 11, opacity: 0.85 }}>Speaks responses aloud in your language</div>
+            </div>
+            <div style={{ background: 'rgba(255,255,255,0.12)', borderRadius: 10, padding: '10px 14px' }}>
+              <div style={{ fontWeight: 700, fontSize: 12, marginBottom: 2 }}>🚨 Emergency SOS</div>
+              <div style={{ fontSize: 11, opacity: 0.85 }}>Automated dispatch to nearest PHC / Hospital</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Embedded Full-Screen Voice Copilot Assistant */}
+      <div style={{ background: 'var(--color-surface)', borderRadius: 'var(--radius-xl)', border: '1px solid var(--color-border)', overflow: 'hidden', boxShadow: 'var(--shadow-md)' }}>
+        <VoiceChatbot
+          apiBase={apiBase}
+          onApplyDetails={onApplyDetails}
+          onRegisterPatient={onRegisterPatient}
+          activeContext="copilot-screen"
+          inline={true}
+          selectedLanguage={selectedLanguage}
+          onLanguageChange={onLanguageChange}
+        />
+      </div>
+    </div>
+  );
+}
+
 // ─── Patients Screen ──────────────────────────────────────────────────────
 function PatientsScreen({ onRecordVisit, onSelectPatient }) {
   const [patients, setPatients] = useState([]);
@@ -1010,13 +1277,22 @@ function PatientsScreen({ onRecordVisit, onSelectPatient }) {
       const data = await api.get('/patients/');
       setPatients(data);
     } catch (e) {
-      // ignore
+      // Show user-facing error in the empty state rather than failing silently
+      console.error('Failed to load patients:', e);
+      setPatients([]);
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => { loadPatients(); }, [loadPatients]);
+
+  // Reload live when chatbot registers a patient or updates status
+  useEffect(() => {
+    const handleUpdate = () => loadPatients();
+    window.addEventListener('patient-updated', handleUpdate);
+    return () => window.removeEventListener('patient-updated', handleUpdate);
+  }, [loadPatients]);
 
   const filtered = patients.filter(p =>
     !search ||
@@ -1127,7 +1403,7 @@ function FollowupsScreen() {
         const data = await api.get('/followups/all');
         setFollowups(data);
       } catch (e) {
-        // ignore
+        console.error('Failed to load follow-ups:', e);
       } finally {
         setLoading(false);
       }
@@ -1141,7 +1417,7 @@ function FollowupsScreen() {
       await api.patch(`/followups/${id}/status`, { status: 'done' });
       setFollowups(prev => prev.map(f => f.id === id ? { ...f, status: 'done' } : f));
     } catch (e) {
-      // ignore
+      console.error('Failed to mark follow-up done:', e);
     } finally {
       setMarkingDone(null);
     }
@@ -1248,7 +1524,7 @@ function ReferralsScreen() {
       await api.patch(`/referrals/${id}/status`, { status });
       setReferrals(prev => prev.map(r => r.id === id ? { ...r, status } : r));
     } catch (e) {
-      // ignore
+      console.error('Failed to update referral status:', e);
     } finally {
       setUpdatingId(null);
     }
@@ -1360,6 +1636,27 @@ function App() {
   const [showResultModal, setShowResultModal] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [apiOnline, setApiOnline] = useState(null);
+  const [pendingAutoFill, setPendingAutoFill] = useState(null);
+  const [chatbotOpen, setChatbotOpen] = useState(false);
+  const [selectedLanguage, setSelectedLanguage] = useState('hi-IN');
+
+  const handleApplyVoiceDetails = (details) => {
+    setPendingAutoFill(details);
+    // Auto-open appropriate modal based on extracted fields
+    if (details.patient_name || details.age || details.village) {
+      if (!showVisitModal) setShowRegisterModal(true);
+    } else if (details.systolic_bp || details.blood_sugar_mg_dl || details.hemoglobin_g_dl || details.temperature_c) {
+      if (!showRegisterModal && !showVisitModal && selectedPatient) {
+        setVisitPatient(selectedPatient);
+        setShowVisitModal(true);
+      }
+    }
+  };
+
+  const handleRegisterFromVoice = (details) => {
+    setPendingAutoFill(details);
+    setShowRegisterModal(true);
+  };
 
   // Check API health on load
   useEffect(() => {
@@ -1398,9 +1695,11 @@ function App() {
 
   const navItems = [
     { id: 'home',      icon: '🏠', label: 'Dashboard' },
+    { id: 'copilot',   icon: '🎙️', label: 'AI Voice Copilot' },
     { id: 'patients',  icon: '👥', label: 'Patients' },
     { id: 'followups', icon: '📅', label: 'Follow-ups' },
     { id: 'referrals', icon: '📄', label: 'Referrals' },
+    { id: 'chatbot',   icon: '🤖', label: 'Voice Assistant', action: () => setChatbotOpen(true) },
   ];
 
   return (
@@ -1421,7 +1720,7 @@ function App() {
               key={item.id}
               id={`nav-${item.id}`}
               className={`nav-btn ${screen === item.id ? 'active' : ''}`}
-              onClick={() => navigate(item.id)}
+              onClick={() => item.action ? item.action() : navigate(item.id)}
             >
               <span className="nav-icon">{item.icon}</span>
               {item.label}
@@ -1448,7 +1747,7 @@ function App() {
               {apiOnline === true ? 'API Connected' : apiOnline === false ? 'API Offline' : 'Checking...'}
             </span>
           </div>
-          <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', marginTop: 4 }}>v1.0.0 • Synthetic demo</div>
+          <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', marginTop: 4 }}>v1.0.0 • Multilingual Voice AI</div>
         </div>
       </aside>
 
@@ -1467,6 +1766,19 @@ function App() {
               onNavigate={navigate}
               onRegisterPatient={() => setShowRegisterModal(true)}
               onSelectPatient={handleSelectPatient}
+              apiBase={API_BASE}
+              onApplyDetails={handleApplyVoiceDetails}
+              selectedLanguage={selectedLanguage}
+              onLanguageChange={setSelectedLanguage}
+            />
+          )}
+          {screen === 'copilot' && (
+            <CopilotScreen
+              apiBase={API_BASE}
+              onRegisterPatient={handleRegisterFromVoice}
+              onApplyDetails={handleApplyVoiceDetails}
+              selectedLanguage={selectedLanguage}
+              onLanguageChange={setSelectedLanguage}
             />
           )}
           {screen === 'patients' && (
@@ -1486,8 +1798,9 @@ function App() {
           {navItems.map(item => (
             <button
               key={item.id}
-              className={`bottom-nav-btn ${screen === item.id ? 'active' : ''}`}
-              onClick={() => navigate(item.id)}
+              id={`bottom-nav-${item.id}`}
+              className={`bottom-nav-btn ${!item.action && screen === item.id ? 'active' : ''} ${item.id === 'chatbot' ? 'chatbot-nav-btn' : ''}`}
+              onClick={item.action ? item.action : () => navigate(item.id)}
             >
               <span className="bn-icon">{item.icon}</span>
               {item.label}
@@ -1502,6 +1815,7 @@ function App() {
           <PatientForm
             onSuccess={handleRegisterSuccess}
             onCancel={() => setShowRegisterModal(false)}
+            autoFillData={pendingAutoFill}
           />
         </Modal>
       )}
@@ -1515,6 +1829,7 @@ function App() {
             patient={visitPatient}
             onSuccess={handleVisitSuccess}
             onCancel={() => setShowVisitModal(false)}
+            autoFillData={pendingAutoFill}
           />
         </Modal>
       )}
@@ -1543,6 +1858,18 @@ function App() {
           />
         </Modal>
       )}
+
+      {/* Voice AI Chatbot Widget */}
+      <VoiceChatbot
+        apiBase={API_BASE}
+        onApplyDetails={handleApplyVoiceDetails}
+        onRegisterPatient={handleRegisterFromVoice}
+        activeContext={screen}
+        isOpen={chatbotOpen}
+        setIsOpen={setChatbotOpen}
+        selectedLanguage={selectedLanguage}
+        onLanguageChange={setSelectedLanguage}
+      />
     </div>
   );
 }

@@ -26,10 +26,15 @@ RISK_LEVELS = ["low", "medium", "high", "critical"]
 
 
 def _level_rank(level: str) -> int:
-    return RISK_LEVELS.index(level)
+    """Return 0..3 severity rank for a level. Falls back to 0 (low) for unknown values."""
+    try:
+        return RISK_LEVELS.index(level)
+    except ValueError:
+        return 0
 
 
 def _max_level(a: str, b: str) -> str:
+    """Return whichever of the two levels is more severe. Unknown levels are treated as 'low'."""
     return a if _level_rank(a) >= _level_rank(b) else b
 
 
@@ -90,7 +95,7 @@ def evaluate_vitals(v: Dict[str, Any]) -> Dict[str, Any]:
         if blood_sugar >= 250 or (existing_diabetes and blood_sugar >= 220):
             flag("diabetes", "critical",
                  f"Very high blood sugar ({blood_sugar} mg/dL) — risk of hyperglycemic emergency")
-        elif blood_sugar >= 200:
+        elif blood_sugar >= 200 or (existing_diabetes and blood_sugar >= 180):
             flag("diabetes", "high", f"High blood sugar ({blood_sugar} mg/dL)")
         elif blood_sugar >= 140:
             flag("diabetes", "medium", f"Borderline/pre-diabetic blood sugar ({blood_sugar} mg/dL)")

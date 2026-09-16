@@ -18,9 +18,22 @@
     <div id="root"></div>
     <script type="module" src="/src/index.jsx"></script>
     <script>
+        // Ensure latest AI Voice updates are never blocked by stale service worker caches
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/sw.js').catch(() => {});
+            navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                for (let registration of registrations) {
+                    registration.unregister();
+                }
+            });
+        }
+        if ('caches' in window) {
+            caches.keys().then(function(names) {
+                for (let name of names) {
+                    caches.delete(name);
+                }
+            });
         }
     </script>
+
 </body>
 </html>

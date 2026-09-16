@@ -4,7 +4,7 @@ from fastapi.staticfiles import StaticFiles
 import os
 
 from app.database import engine, Base
-from app.routers import patients, visits
+from app.routers import patients, visits, chatbot
 from app.routers.referrals_followups import router_referral, router_followup
 
 # Create / migrate tables
@@ -22,9 +22,14 @@ app = FastAPI(
 )
 
 # CORS — allow all origins for local dev; restrict to frontend domain in production
+# Set ALLOWED_ORIGINS env var in Railway to your Vercel URL, e.g.:
+#   ALLOWED_ORIGINS=https://your-app.vercel.app
+_allowed_origins = os.environ.get("ALLOWED_ORIGINS", "*")
+origins = [o.strip() for o in _allowed_origins.split(",")] if _allowed_origins != "*" else ["*"]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -40,6 +45,7 @@ app.include_router(patients.router)
 app.include_router(visits.router)
 app.include_router(router_referral)
 app.include_router(router_followup)
+app.include_router(chatbot.router)
 
 
 @app.get("/health", tags=["system"])
