@@ -1,4 +1,4 @@
-﻿services:
+services:
   # ============================================================================
   # 1. FastAPI Backend — Python Web Service
   # ============================================================================
@@ -30,7 +30,6 @@
     name: asha-copilot-frontend
     runtime: static
     plan: free
-    region: oregon
     rootDir: frontend
     buildCommand: "npm install && npm run build"
     staticPublishPath: "./dist"
