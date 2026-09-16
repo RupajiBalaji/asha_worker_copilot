@@ -2,6 +2,14 @@ import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 
+try:
+    from dotenv import load_dotenv
+    # Load .env from the backend directory (one level up from app/)
+    _env_path = os.path.join(os.path.dirname(__file__), "..", ".env")
+    load_dotenv(_env_path)
+except ImportError:
+    pass
+
 SQLALCHEMY_DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///./asha_copilot.db")
 
 # Render PostgreSQL URLs start with postgres://, SQLAlchemy 2.0 requires postgresql://
