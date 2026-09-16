@@ -29,7 +29,6 @@ services:
   - type: web
     name: asha-copilot-frontend
     runtime: static
-    plan: free
     rootDir: frontend
     buildCommand: "npm install && npm run build"
     staticPublishPath: "./dist"
