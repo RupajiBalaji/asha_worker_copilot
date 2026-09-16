@@ -1,6 +1,6 @@
-services:
+﻿services:
   # ============================================================================
-  # 1. FastAPI Backend — Python Web Service
+  # 1. FastAPI Backend - Python Web Service
   # ============================================================================
   - type: web
     name: asha-copilot-backend
@@ -13,18 +13,16 @@ services:
     envVars:
       - key: PYTHON_VERSION
         value: "3.11.9"
-      # DATABASE — set this in Render dashboard to your Supabase URL:
-      # postgresql://postgres:asha%40copoilot@db.gyaxymczbyphvwcnrwct.supabase.co:5432/postgres
+      # DATABASE_URL is automatically injected from the Render PostgreSQL database below
       - key: DATABASE_URL
-        sync: false
-      # CORS — will be set automatically after frontend deploys
-      # Update this to your actual frontend Render URL, e.g.:
-      # https://asha-copilot-frontend.onrender.com
+        fromDatabase:
+          name: asha-copilot-db
+          property: connectionString
       - key: ALLOWED_ORIGINS
         value: "*"
 
   # ============================================================================
-  # 2. React + Vite Frontend — Static Site
+  # 2. React + Vite Frontend - Static Site
   # ============================================================================
   - type: web
     name: asha-copilot-frontend
@@ -41,7 +39,15 @@ services:
         source: /*
         destination: /index.html
     envVars:
-      # This will be set to the backend's Render URL automatically
-      # e.g., https://asha-copilot-backend.onrender.com
       - key: VITE_API_BASE
         sync: false
+
+# ============================================================================
+# 3. Render PostgreSQL Database (free, same network as backend)
+# ============================================================================
+databases:
+  - name: asha-copilot-db
+    plan: free
+    region: oregon
+    databaseName: asha_copilot
+    user: asha_user
