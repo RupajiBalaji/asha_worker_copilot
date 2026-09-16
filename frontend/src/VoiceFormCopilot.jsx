@@ -23,7 +23,7 @@ export default function VoiceFormCopilot({
   formType = 'patient', // 'patient' or 'visit'
   patientName = '',
   onDetailsExtracted,
-  apiBase = 'http://localhost:8000',
+  apiBase = import.meta.env.VITE_API_BASE || 'http://localhost:8000',
   defaultLanguage = 'hi-IN',
 }) {
   const [selectedLang, setSelectedLang] = useState(defaultLanguage);
