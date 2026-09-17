@@ -4,7 +4,7 @@ from fastapi.staticfiles import StaticFiles
 import os
 
 from app.database import engine, Base
-from app.routers import patients, visits, chatbot
+from app.routers import patients, visits, chatbot, supervisor
 from app.routers.referrals_followups import router_referral, router_followup
 
 # Create / migrate tables
@@ -46,6 +46,7 @@ app.include_router(visits.router)
 app.include_router(router_referral)
 app.include_router(router_followup)
 app.include_router(chatbot.router)
+app.include_router(supervisor.router)
 
 
 @app.get("/health", tags=["system"])

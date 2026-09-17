@@ -3,6 +3,10 @@ import ReactDOM from 'react-dom/client';
 import './index.css';
 import VoiceChatbot, { SUPPORTED_LANGUAGES } from './VoiceChatbot';
 import VoiceFormCopilot from './VoiceFormCopilot';
+import { getStoredUser, saveStoredUser, STATIC_PROFILES } from './profiles';
+import LoginModal from './LoginModal';
+import SupervisorScreen from './SupervisorScreen';
+import WorkerProfileModal from './WorkerProfileModal';
 
 // ─── Config ───────────────────────────────────────────────────────────────
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8000';
@@ -138,15 +142,15 @@ function Modal({ title, onClose, children, footer }) {
 }
 
 // ─── Patient Registration Form ────────────────────────────────────────────
-function PatientForm({ onSuccess, onCancel, autoFillData }) {
+function PatientForm({ onSuccess, onCancel, autoFillData, currentUser }) {
   const [form, setForm] = useState({
     name: '',
     age: '',
     gender: 'female',
-    village: '',
+    village: (currentUser?.role === 'asha_worker' ? currentUser?.village : '') || '',
     phone: '',
     address: '',
-    asha_worker_name: '',
+    asha_worker_name: (currentUser?.role === 'asha_worker' ? currentUser?.name : '') || '',
     is_pregnant: false,
     is_child: false,
     existing_diabetes: false,
@@ -936,7 +940,7 @@ function PatientDetailModal({ patient, onClose, onRecordVisit }) {
 }
 
 // ─── Home Dashboard ───────────────────────────────────────────────────────
-function HomeScreen({ onNavigate, onRegisterPatient, onSelectPatient, apiBase, selectedLanguage, onLanguageChange, onApplyDetails }) {
+function HomeScreen({ onNavigate, onRegisterPatient, onSelectPatient, apiBase, selectedLanguage, onLanguageChange, onApplyDetails, currentUser, onOpenLogin, onOpenProfile }) {
   const [stats, setStats] = useState(null);
   const [overdueFollowups, setOverdueFollowups] = useState([]);
   const [recentPatients, setRecentPatients] = useState([]);
@@ -978,11 +982,15 @@ function HomeScreen({ onNavigate, onRegisterPatient, onSelectPatient, apiBase, s
 
   const today = new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 
+  const isManager = currentUser?.role === 'manager';
+
   return (
     <div style={{ animation: 'slide-up 0.3s ease both' }}>
       {/* Hero greeting */}
       <div style={{
-        background: 'linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 60%, var(--color-accent) 100%)',
+        background: isManager
+          ? 'linear-gradient(135deg, #1e3a8a 0%, #1e40af 60%, #0369a1 100%)'
+          : 'linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 60%, var(--color-accent) 100%)',
         borderRadius: 'var(--radius-xl)',
         padding: 'var(--space-xl)',
         color: 'white',
@@ -991,14 +999,70 @@ function HomeScreen({ onNavigate, onRegisterPatient, onSelectPatient, apiBase, s
         overflow: 'hidden',
       }}>
         <div style={{ position: 'relative', zIndex: 1 }}>
-          <div style={{ fontSize: 13, opacity: 0.8, marginBottom: 6 }}>{today}</div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginBottom: 8 }}>
+            <div style={{ fontSize: 13, opacity: 0.85 }}>{today}</div>
+
+            {currentUser && (
+              <div
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  background: 'rgba(255,255,255,0.22)',
+                  border: '1px solid rgba(255,255,255,0.35)',
+                  padding: '4px 12px',
+                  borderRadius: 'var(--radius-full)',
+                  fontSize: 12,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  transition: 'background 0.15s ease',
+                }}
+                onClick={onOpenLogin}
+                title="Click to switch profile"
+              >
+                <span>{currentUser.avatar}</span>
+                <span>{currentUser.name}</span>
+                <span style={{ opacity: 0.8, fontSize: 11 }}>({currentUser.worker_label})</span>
+                <span style={{ fontSize: 10, background: 'rgba(0,0,0,0.2)', padding: '1px 6px', borderRadius: 4 }}>
+                  Switch 🔄
+                </span>
+              </div>
+            )}
+          </div>
+
           <h2 style={{ fontSize: 24, fontWeight: 800, marginBottom: 6, letterSpacing: -0.5 }}>
-            🏥 ASHA Co-pilot Dashboard
+            {isManager ? '👨🏽‍⚕️ PHC Health Supervisor Overview' : `Namaste, ${currentUser?.name || 'ASHA Worker'}! 🏥`}
           </h2>
-          <p style={{ fontSize: 13, opacity: 0.85, marginBottom: 'var(--space-lg)', maxWidth: 480 }}>
-            AI-powered healthcare assistant for frontline ASHA workers. Monitor patients, record field vitals, and receive real-time clinical guidance in your native language.
+          <p style={{ fontSize: 13, opacity: 0.9, marginBottom: 'var(--space-lg)', maxWidth: 540 }}>
+            {isManager
+              ? 'Real-time frontline oversight portal. Review clinical entries logged by community ASHA workers, track patient coverage quotas, and inspect high-risk case escalations.'
+              : `Welcome to your AI Co-pilot workspace. You are assigned to sector ${currentUser?.village || 'Palani'}. Record field vitals, check ANC danger signs, and triage patient risk in real-time.`}
           </p>
+
           <div style={{ display: 'flex', gap: 'var(--space-sm)', flexWrap: 'wrap' }}>
+            {isManager && (
+              <button
+                type="button"
+                className="action-btn"
+                style={{
+                  background: 'linear-gradient(135deg, #f59e0b 0%, #ea580c 100%)',
+                  color: 'white',
+                  fontWeight: 800,
+                  padding: '10px 22px',
+                  borderRadius: 'var(--radius-md)',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontSize: 14,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  boxShadow: '0 4px 14px rgba(234, 88, 12, 0.45)'
+                }}
+                onClick={() => onNavigate('supervisor')}
+              >
+                📊 Open Manager Oversight & Efficiency
+              </button>
+            )}
             <button
               id="hero-copilot-btn"
               className="action-btn"
@@ -1265,11 +1329,12 @@ function CopilotScreen({ apiBase, onRegisterPatient, onApplyDetails, selectedLan
 }
 
 // ─── Patients Screen ──────────────────────────────────────────────────────
-function PatientsScreen({ onRecordVisit, onSelectPatient }) {
+function PatientsScreen({ onRecordVisit, onSelectPatient, currentUser }) {
   const [patients, setPatients] = useState([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [showRegister, setShowRegister] = useState(false);
+  const [filterTab, setFilterTab] = useState('all'); // 'all', 'my_patients', 'pregnant', 'children'
 
   const loadPatients = useCallback(async () => {
     setLoading(true);
@@ -1294,12 +1359,29 @@ function PatientsScreen({ onRecordVisit, onSelectPatient }) {
     return () => window.removeEventListener('patient-updated', handleUpdate);
   }, [loadPatients]);
 
-  const filtered = patients.filter(p =>
-    !search ||
-    p.name.toLowerCase().includes(search.toLowerCase()) ||
-    p.village.toLowerCase().includes(search.toLowerCase()) ||
-    (p.asha_worker_name || '').toLowerCase().includes(search.toLowerCase())
-  );
+  const myPatientsCount = patients.filter(p =>
+    (currentUser?.name && (p.asha_worker_name || '').toLowerCase() === currentUser.name.toLowerCase()) ||
+    (currentUser?.village && (p.village || '').toLowerCase() === currentUser.village.toLowerCase())
+  ).length;
+
+  const filtered = patients.filter(p => {
+    if (filterTab === 'my_patients') {
+      const matchWorker = currentUser?.name && (p.asha_worker_name || '').toLowerCase() === currentUser.name.toLowerCase();
+      const matchVillage = currentUser?.village && (p.village || '').toLowerCase() === currentUser.village.toLowerCase();
+      if (!matchWorker && !matchVillage) return false;
+    } else if (filterTab === 'pregnant' && !p.is_pregnant) {
+      return false;
+    } else if (filterTab === 'children' && !p.is_child) {
+      return false;
+    }
+
+    return (
+      !search ||
+      p.name.toLowerCase().includes(search.toLowerCase()) ||
+      p.village.toLowerCase().includes(search.toLowerCase()) ||
+      (p.asha_worker_name || '').toLowerCase().includes(search.toLowerCase())
+    );
+  });
 
   const handleRegistered = (newPatient) => {
     setPatients(prev => [newPatient, ...prev]);
@@ -1315,6 +1397,44 @@ function PatientsScreen({ onRecordVisit, onSelectPatient }) {
         </div>
         <button id="open-register-modal" className="btn btn-primary" onClick={() => setShowRegister(true)}>
           ➕ New Patient
+        </button>
+      </div>
+
+      {/* Filter Tabs */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 'var(--space-md)', flexWrap: 'wrap' }}>
+        <button
+          type="button"
+          className={`btn ${filterTab === 'all' ? 'btn-primary' : 'btn-secondary'}`}
+          style={{ padding: '6px 14px', fontSize: 12, borderRadius: 'var(--radius-full)' }}
+          onClick={() => setFilterTab('all')}
+        >
+          👥 All Patients ({patients.length})
+        </button>
+        {currentUser?.role === 'asha_worker' && (
+          <button
+            type="button"
+            className={`btn ${filterTab === 'my_patients' ? 'btn-primary' : 'btn-secondary'}`}
+            style={{ padding: '6px 14px', fontSize: 12, borderRadius: 'var(--radius-full)' }}
+            onClick={() => setFilterTab('my_patients')}
+          >
+            👩‍⚕️ My Sector ({currentUser.village}: {myPatientsCount})
+          </button>
+        )}
+        <button
+          type="button"
+          className={`btn ${filterTab === 'pregnant' ? 'btn-primary' : 'btn-secondary'}`}
+          style={{ padding: '6px 14px', fontSize: 12, borderRadius: 'var(--radius-full)' }}
+          onClick={() => setFilterTab('pregnant')}
+        >
+          🤰 Pregnant Mothers ({patients.filter(p => p.is_pregnant).length})
+        </button>
+        <button
+          type="button"
+          className={`btn ${filterTab === 'children' ? 'btn-primary' : 'btn-secondary'}`}
+          style={{ padding: '6px 14px', fontSize: 12, borderRadius: 'var(--radius-full)' }}
+          onClick={() => setFilterTab('children')}
+        >
+          👶 Children &lt;5y ({patients.filter(p => p.is_child).length})
         </button>
       </div>
 
@@ -1639,6 +1759,17 @@ function App() {
   const [pendingAutoFill, setPendingAutoFill] = useState(null);
   const [chatbotOpen, setChatbotOpen] = useState(false);
   const [selectedLanguage, setSelectedLanguage] = useState('hi-IN');
+  const [currentUser, setCurrentUser] = useState(getStoredUser);
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
+
+  const handleSelectUser = (user) => {
+    setCurrentUser(user);
+    saveStoredUser(user);
+    if (user.role === 'manager') {
+      setScreen('supervisor');
+    }
+  };
 
   const handleApplyVoiceDetails = (details) => {
     setPendingAutoFill(details);
@@ -1693,13 +1824,33 @@ function App() {
     setSidebarOpen(false);
   };
 
+  const isManager = currentUser?.role === 'manager';
+
   const navItems = [
-    { id: 'home',      icon: '🏠', label: 'Dashboard' },
-    { id: 'copilot',   icon: '🎙️', label: 'AI Voice Copilot' },
-    { id: 'patients',  icon: '👥', label: 'Patients' },
+    { id: 'home', icon: '🏠', label: 'Dashboard' },
+    {
+      id: 'supervisor',
+      icon: '📊',
+      label: isManager ? '⭐ Manager Oversight' : '📊 Supervisor Portal',
+      highlight: isManager,
+    },
+    { id: 'copilot', icon: '🎙️', label: 'AI Voice Copilot' },
+    { id: 'patients', icon: '👥', label: 'Patients' },
     { id: 'followups', icon: '📅', label: 'Follow-ups' },
     { id: 'referrals', icon: '📄', label: 'Referrals' },
-    { id: 'chatbot',   icon: '🤖', label: 'Voice Assistant', action: () => setChatbotOpen(true) },
+    {
+      id: 'profile',
+      icon: '👤',
+      label: isManager ? 'Supervisor Profile' : 'My Worker Profile',
+      action: () => setShowProfileModal(true)
+    },
+    {
+      id: 'switch_user',
+      icon: '🔄',
+      label: 'Switch Account',
+      action: () => setShowLoginModal(true)
+    },
+    { id: 'chatbot', icon: '🤖', label: 'Voice Assistant', action: () => setChatbotOpen(true) },
   ];
 
   return (
@@ -1714,12 +1865,38 @@ function App() {
           <p>AI Healthcare Assistant</p>
         </div>
 
+        {/* User Profile Widget */}
+        <div
+          className="sidebar-user-widget"
+          onClick={() => setShowProfileModal(true)}
+          title="Click to view worker details or switch account"
+        >
+          <div className="user-widget-avatar">{currentUser?.avatar || '👩🏽‍⚕️'}</div>
+          <div className="user-widget-info">
+            <div className="user-widget-name">{currentUser?.name || 'Asha Devi'}</div>
+            <div className="user-widget-role">
+              <span>{currentUser?.worker_label || 'ASHA Worker 1'}</span>
+            </div>
+          </div>
+          <button
+            type="button"
+            className="user-widget-switch-btn"
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowLoginModal(true);
+            }}
+            title="Switch User / Login"
+          >
+            Switch 🔄
+          </button>
+        </div>
+
         <nav className="sidebar-nav">
           {navItems.map(item => (
             <button
               key={item.id}
               id={`nav-${item.id}`}
-              className={`nav-btn ${screen === item.id ? 'active' : ''}`}
+              className={`nav-btn ${screen === item.id ? 'active' : ''} ${item.highlight ? 'supervisor-nav-highlight' : ''}`}
               onClick={() => item.action ? item.action() : navigate(item.id)}
             >
               <span className="nav-icon">{item.icon}</span>
@@ -1756,8 +1933,20 @@ function App() {
         {/* Mobile header */}
         <div className="mobile-header">
           <button className="hamburger-btn" onClick={() => setSidebarOpen(!sidebarOpen)} aria-label="Open menu">☰</button>
-          <h1>🏥 ASHA Co-pilot</h1>
-          <button className="hamburger-btn" onClick={() => setShowRegisterModal(true)} aria-label="Add patient">➕</button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <h1 style={{ margin: 0, fontSize: 16 }}>🏥 ASHA Co-pilot</h1>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <button
+              className="hamburger-btn"
+              onClick={() => setShowLoginModal(true)}
+              title="Switch Profile"
+              style={{ fontSize: 16, background: 'rgba(0,0,0,0.05)', borderRadius: '50%' }}
+            >
+              {currentUser?.avatar || '👤'}
+            </button>
+            <button className="hamburger-btn" onClick={() => setShowRegisterModal(true)} aria-label="Add patient">➕</button>
+          </div>
         </div>
 
         <div className="page-wrapper">
@@ -1770,6 +1959,16 @@ function App() {
               onApplyDetails={handleApplyVoiceDetails}
               selectedLanguage={selectedLanguage}
               onLanguageChange={setSelectedLanguage}
+              currentUser={currentUser}
+              onOpenLogin={() => setShowLoginModal(true)}
+              onOpenProfile={() => setShowProfileModal(true)}
+            />
+          )}
+          {screen === 'supervisor' && (
+            <SupervisorScreen
+              apiBase={API_BASE}
+              onSelectPatient={handleSelectPatient}
+              onSwitchUser={() => setShowLoginModal(true)}
             />
           )}
           {screen === 'copilot' && (
@@ -1785,6 +1984,7 @@ function App() {
             <PatientsScreen
               onRecordVisit={handleRecordVisit}
               onSelectPatient={handleSelectPatient}
+              currentUser={currentUser}
             />
           )}
           {screen === 'followups' && <FollowupsScreen />}
@@ -1795,17 +1995,26 @@ function App() {
       {/* Bottom nav (mobile) */}
       <div className="bottom-nav">
         <div className="bottom-nav-inner">
-          {navItems.map(item => (
+          {navItems.slice(0, 5).map(item => (
             <button
               key={item.id}
               id={`bottom-nav-${item.id}`}
-              className={`bottom-nav-btn ${!item.action && screen === item.id ? 'active' : ''} ${item.id === 'chatbot' ? 'chatbot-nav-btn' : ''}`}
+              className={`bottom-nav-btn ${!item.action && screen === item.id ? 'active' : ''}`}
               onClick={item.action ? item.action : () => navigate(item.id)}
             >
               <span className="bn-icon">{item.icon}</span>
               {item.label}
             </button>
           ))}
+          <button
+            type="button"
+            className="bottom-nav-btn"
+            onClick={() => setShowLoginModal(true)}
+            title="Profile Switcher"
+          >
+            <span className="bn-icon">{currentUser?.avatar || '👤'}</span>
+            Profile
+          </button>
         </div>
       </div>
 
@@ -1816,6 +2025,7 @@ function App() {
             onSuccess={handleRegisterSuccess}
             onCancel={() => setShowRegisterModal(false)}
             autoFillData={pendingAutoFill}
+            currentUser={currentUser}
           />
         </Modal>
       )}
@@ -1857,6 +2067,26 @@ function App() {
             }}
           />
         </Modal>
+      )}
+
+      {showLoginModal && (
+        <LoginModal
+          currentUser={currentUser}
+          onSelectUser={handleSelectUser}
+          onClose={() => setShowLoginModal(false)}
+        />
+      )}
+
+      {showProfileModal && (
+        <WorkerProfileModal
+          user={currentUser}
+          apiBase={API_BASE}
+          onClose={() => setShowProfileModal(false)}
+          onSwitchProfile={() => {
+            setShowProfileModal(false);
+            setShowLoginModal(true);
+          }}
+        />
       )}
 
       {/* Voice AI Chatbot Widget */}

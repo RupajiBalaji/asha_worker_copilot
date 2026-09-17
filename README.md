@@ -1,4 +1,4 @@
-﻿<div align="center">
+<div align="center">
 
 <img src="https://img.shields.io/badge/🏥_ASHA_WORKER-AI_CO--PILOT-0D5C55?style=for-the-badge&labelColor=0a4a44" alt="ASHA Worker AI Co-pilot"/>
 
@@ -46,6 +46,7 @@
 ## 📋 Table of Contents
 
 - [What is ASHA Co-pilot?](#-what-is-asha-co-pilot)
+- [Worker Profiles & Manager Oversight](#-worker-profiles--manager-oversight)
 - [Key Features](#-key-features)
 - [AI Voice Copilot](#-ai-voice-copilot)
 - [Architecture](#-architecture)
@@ -83,6 +84,49 @@ Auto-registers patient                                    Generates referral PDF
 | 📄 Handwritten referral letters | Auto-generated PDF referral letters |
 | 📅 Missed follow-up visits | Automated follow-up scheduling & reminders |
 | ❓ Answering demographic queries | AI chatbot with live clinic database intelligence |
+
+---
+
+## 👥 Worker Profiles & Manager Oversight
+
+The system provides **Role-Based Profiles** with pre-configured static logins for frontline ASHA workers and PHC Health Supervisors / Medical Officers.
+
+### 🔑 Static Demo Login Accounts
+
+| Role | Name | Username | Password | Worker ID | Assigned Sector / Village | Key Responsibility |
+|------|------|----------|----------|-----------|---------------------------|--------------------|
+| 👩🏽‍⚕️ **ASHA Worker 1** | **Asha Devi** | `asha1` | `password123` / `asha123` | `ASHA-101` | Palani | Maternal & Child Health, ANC visits |
+| 👩🏾‍⚕️ **ASHA Worker 2** | **Lakshmi R** | `asha2` | `password123` / `asha123` | `ASHA-102` | Vadapalani | High-risk screening, door-to-door vitals |
+| 👩🏻‍⚕️ **ASHA Worker 3** | **Meena Kumari** | `asha3` | `password123` / `asha123` | `ASHA-103` | Kancheepuram | Immunization, child malnutrition triage |
+| 👨🏽‍⚕️ **PHC Manager / Supervisor** | **Dr. Rajesh Sharma** | `manager` | `admin123` | `MOIC-501` | All Block Sectors (HQ) | Block-level clinical audit, work efficiency |
+
+> ⚡ **1-Click Quick Switcher**: Click the profile chip in the top navigation or sidebar to switch between any worker and manager role in a single click without typing passwords during demonstrations!
+
+---
+
+### 📊 Managerial Oversight & Work Efficiency System
+
+Built specifically for **PHC Medical Officers and Block Health Supervisors** to monitor frontline workers:
+
+1. **Live Clinical Entry Audit Stream**:
+   - Real-time chronological audit of every entry logged by ASHA workers in the field.
+   - Filter by specific ASHA worker, action type (*Visits & Vitals* vs *Patient Registrations*), or risk level (*Critical*, *High*, *Normal*).
+   - Instant visibility into patient vitals, clinical danger signs, and referrals generated.
+
+2. **ASHA Worker Efficiency Leaderboard & Scorecards**:
+   - **Patient Coverage**: Number of registered community patients actively managed by each worker.
+   - **Visit Quota Progress**: Tracks monthly field consultation progress against targets (e.g. 29/35 visits completed with progress meter).
+   - **Danger Sign Interceptions**: High-risk and critical maternal/pediatric cases flagged and referred to higher health centers.
+   - **Follow-up Compliance Rate**: Measures on-time follow-up completion percentage (*Done vs Overdue*).
+   - **Composite Efficiency Index**: Automated 0–100% performance rating (*⭐ High Performer*, *🟢 On Track*, *⚠️ Needs Follow-up*).
+
+3. **Individual Worker Drilldown**:
+   - Inspect all patient records, recent consultations, and pending follow-ups assigned to any worker.
+
+4. **ASHA Worker Experience**:
+   - When logged in, patient registration forms auto-fill with the worker's name.
+   - Dedicated *"My Sector Patients"* filter view on the Patients screen.
+   - Personal *"My Profile"* modal with personal target tracking.
 
 ---
 

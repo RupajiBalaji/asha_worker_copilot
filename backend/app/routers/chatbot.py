@@ -532,6 +532,16 @@ def _build_db_context(user_msg: str, db: Session) -> str:
                         crit_lines.append(f"• #{p.id} {p.name} ({p.village}) - {str(cv.risk_level).upper()}: BP {cv.systolic_bp}/{cv.diastolic_bp}, Hb {cv.hemoglobin_g_dl}")
                 contextual_details.append(f"=== RECENT HIGH/CRITICAL RISK PATIENTS ===\n" + "\n".join(crit_lines))
 
+        # 6. Check for ASHA worker or supervisor questions
+        if any(w in msg_lower for w in ["asha", "worker", "supervisor", "manager", "efficiency", "who is", "staff", "doctor"]):
+            contextual_details.append(
+                "=== ASHA WORKERS & SUPERVISOR ROLES ===\n"
+                "• ASHA Worker 1: Asha Devi (Worker ID: ASHA-101) - Assigned to Palani village sector.\n"
+                "• ASHA Worker 2: Lakshmi R (Worker ID: ASHA-102) - Assigned to Vadapalani village sector.\n"
+                "• ASHA Worker 3: Meena Kumari (Worker ID: ASHA-103) - Assigned to Kancheepuram village sector.\n"
+                "• Health Supervisor / Manager: Dr. Rajesh Sharma (Staff ID: MOIC-501) - PHC Medical Officer In-Charge overseeing all frontline worker entries and block efficiency."
+            )
+
         full_context = "\n".join(summary_lines)
         if contextual_details:
             full_context += "\n\n" + "\n\n".join(contextual_details)
