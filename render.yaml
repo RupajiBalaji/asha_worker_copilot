@@ -1,4 +1,4 @@
-﻿services:
+services:
   # ============================================================================
   # 1. FastAPI Backend - Python Web Service
   # ============================================================================
@@ -20,6 +20,8 @@
           property: connectionString
       - key: ALLOWED_ORIGINS
         value: "*"
+      - key: GEMINI_API_KEY
+        sync: false
 
   # ============================================================================
   # 2. React + Vite Frontend - Static Site

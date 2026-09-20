@@ -18,15 +18,10 @@ from app.models.db_models import Patient, Visit, Referral, FollowUp
 logger = logging.getLogger("chatbot.key_rotator")
 router = APIRouter(prefix="/chatbot", tags=["chatbot"])
 
-# Gemini API Configuration & Key Pool for high-availability rotation
-DEFAULT_GEMINI_KEYS = [
-    "AIzaSyAtSNHZustb6NrJJQw-FbigMihes5UgTtU",
-    "AIzaSyCeK8rJut5skMSTQuCfc0eip6cVbwG-wZg",
-    "AIzaSyB3U63hjXtAVLM012Hbvv8p2pSpV4L6lo0",
-    "AIzaSyB5tQHmqazUj3hB9y99SA7CtCouAcoNtn8",
-    "AIzaSyD3kmkmribUP88DthwYt-o1Syvcc9m35pM",
-    "AIzaSyAcyVQ2JaIB5ko4nej-XFBJE93pJ4ge4KA",
-]
+# Gemini API Configuration & Key Pool for high-availability rotation.
+# API keys MUST be provided via environment variables (GEMINI_API_KEYS or GEMINI_API_KEY).
+# NEVER hardcode secrets into source files!
+DEFAULT_GEMINI_KEYS: List[str] = []
 
 
 class GeminiKeyRotator:
@@ -42,6 +37,10 @@ class GeminiKeyRotator:
         self._index = 0
         self._lock = threading.Lock()
         self._cooldowns: Dict[str, float] = {}
+
+    def set_keys(self, keys: List[str]):
+        with self._lock:
+            self._keys = [k.strip() for k in keys if k.strip()]
 
     def get_keys(self) -> List[str]:
         with self._lock:
@@ -107,6 +106,13 @@ class GeminiKeyRotator:
 
 
 def _init_key_rotator() -> GeminiKeyRotator:
+    try:
+        from dotenv import load_dotenv
+        _env_path = os.path.join(os.path.dirname(__file__), "..", "..", ".env")
+        load_dotenv(_env_path)
+    except Exception:
+        pass
+
     env_keys = os.environ.get("GEMINI_API_KEYS") or os.environ.get("GEMINI_API_KEY")
     if env_keys:
         parsed = [k.strip() for k in env_keys.split(",") if k.strip()]
@@ -231,7 +237,15 @@ def _call_gemini_api(prompt_text: str, conversation_history: List[Dict[str, str]
     """Call Google Gemini REST API with round-robin key rotation and fallback models."""
     keys = key_rotator.get_ordered_keys()
     if not keys:
-        raise ValueError("No Gemini API keys configured.")
+        env_keys = os.environ.get("GEMINI_API_KEYS") or os.environ.get("GEMINI_API_KEY")
+        if env_keys:
+            parsed = [k.strip() for k in env_keys.split(",") if k.strip()]
+            if parsed:
+                key_rotator.set_keys(parsed)
+                keys = key_rotator.get_ordered_keys()
+
+    if not keys:
+        raise ValueError("No Gemini API keys configured. Please set GEMINI_API_KEY or GEMINI_API_KEYS.")
 
     # Build prompt with history
     contents = []
