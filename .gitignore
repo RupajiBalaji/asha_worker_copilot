@@ -13,9 +13,13 @@ backend/referrals/*.pdf
 # Node
 node_modules/
 dist/
+# Secrets & Environment variables
 .env
 *.env
+**/.env
+.env.*
 !.env.example
+!**/.env.example
 
 # OS & Editors
 .DS_Store
